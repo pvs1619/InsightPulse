@@ -30,6 +30,7 @@ ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "https://insight-pulse-liard.vercel.app",
 ]
 
 # Enable CORS for Next.js frontend development server
