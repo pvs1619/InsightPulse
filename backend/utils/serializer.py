@@ -20,13 +20,13 @@ def sanitize_json_value(val: Any) -> Any:
             return None
         return float(val)
 
+    # Handle booleans (must be before int since bool is a subclass of int in Python)
+    if isinstance(val, (bool, np.bool_)):
+        return bool(val)
+
     # Handle integers
     if isinstance(val, (int, np.integer)):
         return int(val)
-
-    # Handle booleans
-    if isinstance(val, (bool, np.bool_)):
-        return bool(val)
 
     # Handle datetime / timestamp
     if isinstance(val, (pd.Timestamp, np.datetime64)):

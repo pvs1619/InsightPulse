@@ -8,6 +8,7 @@ import yfinance as yf
 
 from services.ticker_resolver import ticker_resolver
 from utils.serializer import sanitize_json_value
+from utils.paths import get_market_data_dir
 
 logger = logging.getLogger("market_service")
 
@@ -29,8 +30,12 @@ class MarketDataService:
     Ensures 100% JSON-compliant values without NaN / Inf leaking.
     """
 
-    def __init__(self, offline_dir: str = "data/market_data"):
-        self.offline_dir = offline_dir
+    def __init__(self, offline_dir: Optional[str] = None):
+        self._custom_offline_dir = offline_dir
+
+    @property
+    def offline_dir(self) -> str:
+        return self._custom_offline_dir or get_market_data_dir()
 
     def _process_dataframe(self, df: pd.DataFrame, ticker: str, company_name: str, currency: str, data_source: str) -> Dict[str, Any]:
         df = df.copy()

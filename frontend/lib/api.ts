@@ -5,7 +5,11 @@
  */
 export function getApiBaseUrl(): string {
   if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+    let url = process.env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+    if (!url.endsWith("/api")) {
+      url = `${url}/api`;
+    }
+    return url;
   }
   if (typeof window !== "undefined" && window.location) {
     const host = window.location.hostname || "localhost";
@@ -113,10 +117,12 @@ export interface CompanyArticleItem {
   date: string;
   source: string;
   text: string;
+  url?: string;
   sentiment: string;
   confidence: number;
   topics: string[];
   risks: string[];
+  is_fallback?: boolean;
 }
 
 export interface MarketSummary {
@@ -141,6 +147,7 @@ export interface CompanyAnalysisResponse {
   currency: string;
   data_source: string;
   news_source: string;
+  is_fallback?: boolean;
   has_news: boolean;
   news_message?: string;
   article_count: number;

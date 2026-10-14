@@ -6,6 +6,7 @@ import yfinance as yf
 
 from services.ticker_resolver import ticker_resolver
 from services.market_service import market_service
+from services.news_service import news_service
 from utils.serializer import sanitize_json_value
 from nlp.sentiment import sentiment_analyzer
 from nlp.keywords import keyword_extractor
@@ -19,8 +20,8 @@ class CompanyAnalysisService:
     and generating corporate analytical aggregations.
     """
 
-    def __init__(self, news_csv_path: str = "data/financial_news.csv"):
-        self.news_csv_path = news_csv_path
+    def __init__(self):
+        pass
 
     def analyze_company(self, query: str) -> Dict[str, Any]:
         resolved = ticker_resolver.resolve(query)
@@ -39,54 +40,8 @@ class CompanyAnalysisService:
             market_snapshot = None
             market_source = "Unavailable"
 
-        # 2. Extract news text items (dynamic live news or offline dataset)
-        raw_articles = []
-        news_source = "None"
-
-        # Try live yfinance news first
-        try:
-            yf_ticker = yf.Ticker(ticker)
-            live_news = yf_ticker.news
-            if live_news and isinstance(live_news, list) and len(live_news) > 0:
-                for idx, n in enumerate(live_news[:12]):
-                    cnt = n.get("content", {}) if isinstance(n.get("content"), dict) else {}
-                    title = cnt.get("title") or n.get("title") or ""
-                    summary = cnt.get("summary") or n.get("summary") or ""
-                    pub_date = (cnt.get("pubDate") or "")[:10]
-                    provider = cnt.get("provider", {}).get("displayName") or n.get("publisher") or "Financial News"
-
-                    if title:
-                        raw_articles.append({
-                            "article_id": f"live_{idx + 1}",
-                            "headline": title,
-                            "text": summary or title,
-                            "date": pub_date or "Recent",
-                            "source": provider
-                        })
-                if raw_articles:
-                    news_source = "Live Financial News"
-        except Exception:
-            pass
-
-        # If no live news, check offline demo dataset
-        if not raw_articles and os.path.exists(self.news_csv_path):
-            df = pd.read_csv(self.news_csv_path)
-            clean_ticker = ticker.split(".")[0].lower()
-            matched_df = df[
-                (df["company"].str.lower() == company_name.lower()) |
-                (df["company"].str.lower().str.contains(clean_ticker, na=False))
-            ].copy()
-
-            if not matched_df.empty:
-                for _, row in matched_df.iterrows():
-                    raw_articles.append({
-                        "article_id": str(row.get("article_id", "")),
-                        "headline": str(row["headline"]),
-                        "text": str(row["text"]),
-                        "date": str(row.get("date", "Recent")),
-                        "source": str(row.get("source", "Financial News"))
-                    })
-                news_source = "Offline Demo Dataset"
+        # 2. Extract news text items (dynamic live news, Google RSS, Finnhub, or offline dataset)
+        raw_articles, news_source, is_fallback = news_service.get_news_for_company(ticker, company_name)
 
         # 3. If no articles available, return clean state without fabricating
         if not raw_articles:
@@ -96,6 +51,7 @@ class CompanyAnalysisService:
                 "currency": currency,
                 "data_source": market_source,
                 "news_source": "Unavailable",
+                "is_fallback": False,
                 "has_news": False,
                 "news_message": "Live financial news is not currently available for this company. You can analyze financial text manually using the Text Analyzer.",
                 "article_count": 0,
@@ -117,7 +73,6 @@ class CompanyAnalysisService:
         # 4. Run real NLP pipeline across the articles
         sentiments = []
         all_topics = []
-        all_keywords = []
         all_risks = []
         sentiment_trend = []
         articles_list = []
@@ -154,10 +109,12 @@ class CompanyAnalysisService:
                 "date": art["date"],
                 "source": art["source"],
                 "text": art["text"],
+                "url": art.get("url", ""),
                 "sentiment": sent_res["sentiment"],
                 "confidence": sent_res["confidence"],
                 "topics": [t["topic"] for t in top_res[:2]],
-                "risks": [r["category"] for r in risk_res[:2]]
+                "risks": [r["category"] for r in risk_res[:2]],
+                "is_fallback": is_fallback
             })
 
         total_articles = len(raw_articles)
@@ -185,6 +142,7 @@ class CompanyAnalysisService:
             "currency": currency,
             "data_source": market_source,
             "news_source": news_source,
+            "is_fallback": is_fallback,
             "has_news": True,
             "article_count": total_articles,
             "market_snapshot": market_snapshot,

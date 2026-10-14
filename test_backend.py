@@ -2,6 +2,11 @@ import sys
 import os
 
 sys.path.append('backend')
+if sys.stdout.encoding != 'utf-8':
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 from api.routes import (
     analyze_financial_text, TextAnalysisRequest,

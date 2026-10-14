@@ -16,6 +16,7 @@ from services.company_service import company_service
 from services.market_service import market_service
 from prediction.lstm_model import lstm_service
 from services.evaluation_service import evaluation_service
+from utils.paths import get_sample_articles_path, get_financial_news_path, get_market_data_dir
 
 router = APIRouter(prefix="/api")
 
@@ -33,18 +34,21 @@ class PredictionRequest(BaseModel):
 
 @router.get("/health")
 def get_health():
+    sample_path = get_sample_articles_path()
+    news_path = get_financial_news_path()
+    mkt_dir = get_market_data_dir()
     return {
         "status": "online",
         "service": "InsightPulse Backend",
         "nlp_sentiment_model": sentiment_analyzer.model_status,
-        "sample_articles_available": os.path.exists("data/sample_articles.csv"),
-        "financial_news_available": os.path.exists("data/financial_news.csv"),
-        "market_data_available": os.path.exists("data/market_data/NVDA.csv")
+        "sample_articles_available": os.path.exists(sample_path),
+        "financial_news_available": os.path.exists(news_path),
+        "market_data_available": os.path.exists(os.path.join(mkt_dir, "NVDA.csv"))
     }
 
 @router.get("/sample-articles")
 def get_sample_articles():
-    csv_path = "data/sample_articles.csv"
+    csv_path = get_sample_articles_path()
     if not os.path.exists(csv_path):
         return []
     articles = []

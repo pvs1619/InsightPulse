@@ -21,7 +21,8 @@ import {
   Activity,
   Database,
   AlertCircle,
-  ExternalLink
+  ExternalLink,
+  Info
 } from "lucide-react";
 import {
   PieChart,
@@ -144,8 +145,12 @@ function CompanyAnalysisContent() {
                 <span>Market: {data.data_source}</span>
               </span>
 
-              <span className="px-2.5 py-1 rounded-md bg-blue-50 text-blue-800 border border-blue-200 flex items-center gap-1.5">
-                <Database className="w-3.5 h-3.5 text-blue-600" />
+              <span className={`px-2.5 py-1 rounded-md border flex items-center gap-1.5 ${
+                data.is_fallback
+                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                  : "bg-blue-50 text-blue-800 border-blue-200"
+              }`}>
+                <Database className={`w-3.5 h-3.5 ${data.is_fallback ? "text-amber-600" : "text-blue-600"}`} />
                 <span>News: {data.news_source}</span>
               </span>
             </div>
@@ -479,22 +484,54 @@ function CompanyAnalysisContent() {
 
               {/* Analyzed Financial Articles / Text */}
               <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs space-y-4">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Recent Analyzed Financial Content ({data.article_count} items)
-                  </h3>
-                  <span className="text-xs text-slate-500 font-mono">
-                    Source: {data.news_source}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      Recent Analyzed Financial Content ({data.article_count} items)
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      {data.is_fallback
+                        ? "Displaying verified historical reference articles (Live feeds currently unreachable)"
+                        : "Real-time market headlines parsed with financial NLP pipeline"}
+                    </p>
+                  </div>
+                  <span className={`text-xs font-mono px-2.5 py-1 rounded border self-start sm:self-auto ${
+                    data.is_fallback
+                      ? "bg-amber-50 text-amber-800 border-amber-200 font-semibold"
+                      : "bg-slate-100 text-slate-600 border-slate-200"
+                  }`}>
+                    {data.news_source}
                   </span>
                 </div>
+
+                {data.is_fallback && (
+                  <div className="p-3 bg-amber-50/70 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-center gap-2">
+                    <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      Live news stream was temporarily unavailable for <strong>{data.ticker}</strong>. Displaying verified offline financial news dataset for demonstration and NLP analysis.
+                    </span>
+                  </div>
+                )}
 
                 <div className="divide-y divide-slate-100">
                   {data.articles.map((art) => (
                     <div key={art.article_id} className="py-3.5 space-y-1.5">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-900">
-                          {art.headline}
-                        </span>
+                        {art.url ? (
+                          <a
+                            href={art.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-bold text-slate-900 hover:text-blue-600 transition-colors inline-flex items-center gap-1.5 group"
+                          >
+                            <span>{art.headline}</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 shrink-0" />
+                          </a>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-900">
+                            {art.headline}
+                          </span>
+                        )}
                         <div className="flex items-center gap-2 font-mono text-[11px]">
                           <span className="text-slate-500">{art.source}</span>
                           <span className="text-slate-300">•</span>

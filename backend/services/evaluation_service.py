@@ -1,12 +1,13 @@
 import os
 import pandas as pd
 import numpy as np
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
 from sklearn.model_selection import train_test_split
 
+from utils.paths import get_financial_news_path
 from nlp.sentiment import sentiment_analyzer
 from prediction.lstm_model import lstm_service
 
@@ -18,18 +19,51 @@ class ModelEvaluationService:
     2. Time-Series Predictive Analytics: Standardized benchmark assets evaluated on 80/20 train/test splits.
     """
 
-    def __init__(self, news_csv_path: str = "data/financial_news.csv"):
-        self.news_csv_path = news_csv_path
+    def __init__(self, news_csv_path: Optional[str] = None):
+        self._custom_news_csv_path = news_csv_path
+
+    @property
+    def news_csv_path(self) -> str:
+        return self._custom_news_csv_path or get_financial_news_path()
 
     def run_nlp_evaluation(self) -> Dict[str, Any]:
         """
         Trains and evaluates TF-IDF + Logistic Regression baseline against
         the financial sentiment model on actual labeled test data.
         """
-        if not os.path.exists(self.news_csv_path):
-            raise FileNotFoundError(f"News dataset not found at {self.news_csv_path}")
+        resolved_path = self.news_csv_path
+        if not os.path.exists(resolved_path):
+            raise FileNotFoundError(f"News dataset not found at {resolved_path}. Ensure backend/data/financial_news.csv is deployed.")
 
-        df = pd.read_csv(self.news_csv_path)
+        if os.path.getsize(resolved_path) == 0:
+            raise ValueError(f"News dataset at {resolved_path} is empty (0 bytes).")
+
+        try:
+            df = pd.read_csv(resolved_path)
+        except Exception as e:
+            raise ValueError(f"Failed to parse news dataset CSV at {resolved_path}: {e}")
+
+        required_cols = {"headline", "text", "sentiment"}
+        missing_cols = required_cols - set(df.columns)
+        if missing_cols:
+            raise ValueError(
+                f"News dataset at {resolved_path} is missing required columns: {sorted(list(missing_cols))}. "
+                f"Expected columns: {sorted(list(required_cols))}."
+            )
+
+        # Filter out rows with missing values in required fields
+        df = df[df["headline"].notna() & df["text"].notna() & df["sentiment"].notna()].copy()
+        if len(df) < 10:
+            raise ValueError(
+                f"News dataset contains insufficient valid rows ({len(df)} rows). A minimum of 10 rows is required for stratified evaluation."
+            )
+
+        unique_sentiments = df["sentiment"].unique()
+        if len(unique_sentiments) < 2:
+            raise ValueError(
+                f"News dataset contains insufficient sentiment classes ({unique_sentiments}). At least 2 distinct classes are required."
+            )
+
         texts = (df["headline"] + ". " + df["text"]).tolist()
         labels = df["sentiment"].tolist()
 

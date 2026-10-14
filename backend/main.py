@@ -33,11 +33,11 @@ ALLOWED_ORIGINS = [
     "https://insight-pulse-liard.vercel.app",
 ]
 
-# Enable CORS for Next.js frontend development server
+# Enable CORS for Next.js frontend development server and production Vercel apps
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_origin_regex=r"^(https://.*\.vercel\.app|https?://(localhost|127\.0\.0\.1)(:[0-9]+)?)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,7 +46,7 @@ app.add_middleware(
 
 def _get_cors_headers(request: Request) -> dict:
     origin = request.headers.get("origin")
-    if origin and (origin in ALLOWED_ORIGINS or "localhost" in origin or "127.0.0.1" in origin):
+    if origin and (origin in ALLOWED_ORIGINS or "localhost" in origin or "127.0.0.1" in origin or origin.endswith(".vercel.app")):
         return {
             "Access-Control-Allow-Origin": origin,
             "Access-Control-Allow-Credentials": "true",
