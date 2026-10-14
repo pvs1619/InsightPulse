@@ -98,7 +98,7 @@ class ModelEvaluationService:
         f_prec, f_rec, f_f1, _ = precision_recall_fscore_support(y_test, fin_preds, average="weighted", zero_division=0)
         f_cm = confusion_matrix(y_test, fin_preds, labels=class_names).tolist()
 
-        model_name = "FinBERT (ProsusAI/finbert)" if not sentiment_analyzer.finbert_pipeline is None else "Financial Domain Lexicon"
+        model_name = "FinBERT (ProsusAI/finbert)" if not sentiment_analyzer.finbert_pipeline is None else "Financial Domain Lexicon (Loughran-McDonald)"
 
         return {
             "evaluation_mode": "Standardized Holdout Test Partition (25% Split)",

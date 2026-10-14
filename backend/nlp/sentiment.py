@@ -53,7 +53,7 @@ class FinancialSentimentAnalyzer:
             self.finbert_pipeline = pipeline("text-classification", model=self.model, tokenizer=self.tokenizer, return_all_scores=True)
             self.model_status = "loaded"
         except Exception as e:
-            self.model_status = f"fallback: {str(e)[:80]}"
+            self.model_status = f"fallback: Financial Domain Lexicon (Loughran-McDonald) [{str(e)[:50]}]"
             self.finbert_pipeline = None
 
     def _analyze_fallback(self, text: str) -> Dict[str, Any]:
@@ -71,7 +71,7 @@ class FinancialSentimentAnalyzer:
                 "sentiment": "Neutral",
                 "confidence": 75.0,
                 "probabilities": {"positive": 0.20, "neutral": 0.60, "negative": 0.20},
-                "model_source": "Financial Lexicon & Rule Fallback (Demo Mode)",
+                "model_source": "Financial Domain Lexicon (Loughran-McDonald)",
                 "is_fallback": True,
                 "explanation": "Text contained no alphabetic tokens; defaulted to neutral baseline."
             }
@@ -141,7 +141,7 @@ class FinancialSentimentAnalyzer:
                 "neutral": prob_neu,
                 "negative": prob_neg
             },
-            "model_source": "Financial Lexicon & Rule Fallback (Demo Mode)",
+            "model_source": "Financial Domain Lexicon (Loughran-McDonald)",
             "is_fallback": True,
             "explanation": f"Lexical analysis found {round(pos_score, 1)} positive weighting vs {round(neg_score, 1)} negative weighting with Loughran-McDonald financial dictionary."
         }
